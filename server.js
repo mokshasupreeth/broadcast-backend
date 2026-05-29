@@ -344,24 +344,17 @@ io.on('connection', (socket) => {
     }
   );
 });
-
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Broadcast Backend Running'
+  });
+});
 // ======================
 // ROUTES
 // ======================
 // DEBUG — DB లో chats చూడటానికి
-const { db } = require('./models/Db');
-const chats = db.prepare(`
-  SELECT pc.id, pc.user1_id, pc.user2_id,
-    u1.name as user1_name, u2.name as user2_name
-  FROM private_chats pc
-  JOIN users u1 ON pc.user1_id = u1.id
-  JOIN users u2 ON pc.user2_id = u2.id
-`).all();
-console.log('=== ALL CHATS IN DB ===');
-chats.forEach(c => {
-  console.log(`${c.user1_name} <-> ${c.user2_name} | id: ${c.id}`);
-});
-console.log('=== TOTAL:', chats.length, '===');
+
 app.use(
   '/api/auth',
   require('./routes/auth')
