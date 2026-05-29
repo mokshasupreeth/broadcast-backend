@@ -1,0 +1,32 @@
+{
+  "name": "broadcast-app",
+  "version": "3.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "axios": "^1.16.1",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^9.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "expo-document-picker": "^55.0.13",
+    "expo-file-system": "^55.0.20",
+    "expo-firebase-recaptcha": "^2.3.1",
+    "expo-image-picker": "^55.0.20",
+    "express": "^4.18.2",
+    "firebase": "^12.13.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^8.0.7",
+    "socket.io": "^4.7.2",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

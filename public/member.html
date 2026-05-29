@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Broadcast — Member</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B3D91;--navy-dk:#082d6e;--navy-lt:#1a4fa8;--navy-pale:#e8eef8;--navy-pale2:#dce6f5;
+  --teal:#0F6C74;--teal-lt:#138a94;--teal-pale:#e6f3f4;--teal-pale2:#d0eaec;
+  --white:#FFFFFF;--gray:#F5F7FA;--gray2:#E8ECF2;--gray3:#C8D0DC;--gray4:#8896AA;--gray5:#5a6a82;
+  --text:#14213d;--text2:#3a4d68;
+  --err:#be2a2a;--err-bg:#fdf1f1;--ok:#0F6C74;--ok-bg:#e6f3f4;--warn:#9c6700;--warn-bg:#fef9ec;
+  --new:#b7680a;
+}
+body{background:var(--gray);color:var(--text);font-family:'IBM Plex Sans',sans-serif;min-height:100vh}
+
+.topbar{background:var(--navy);padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.tl{display:flex;align-items:center;gap:12px}
+.logo-m{width:32px;height:32px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.logo-n{font-family:'Source Serif 4',serif;font-size:17px;font-weight:700;color:var(--white);letter-spacing:-.2px}
+.topbar-div{width:1px;height:18px;background:rgba(255,255,255,.15)}
+.page-sub{font-size:12px;color:rgba(255,255,255,.5);letter-spacing:.01em}
+.tr{display:flex;align-items:center;gap:10px}
+.user-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 14px 5px 8px;font-size:12px;color:rgba(255,255,255,.85)}
+.uav{width:22px;height:22px;border-radius:50%;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--white)}
+.out-btn{padding:6px 14px;border-radius:20px;font-size:12px;background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);cursor:pointer;transition:all .2s;font-family:'IBM Plex Sans',sans-serif}
+.out-btn:hover{border-color:rgba(255,255,255,.5);color:var(--white)}
+
+/* CONTENT AREA */
+.content-wrap{max-width:720px;margin:0 auto;padding:28px 20px}
+
+.page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-head h1{font-family:'Source Serif 4',serif;font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.unread-pill{background:var(--warn);color:var(--white);border-radius:20px;font-size:10px;font-weight:700;padding:3px 11px}
+
+/* FILTER TABS */
+.filter-tabs{display:flex;gap:0;background:var(--white);border:1px solid var(--gray2);border-radius:8px;padding:3px;margin-bottom:20px;width:fit-content}
+.ftab{padding:7px 18px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--gray4);transition:all .2s;letter-spacing:.01em}
+.ftab.active{background:var(--navy);color:var(--white)}
+
+/* CARDS */
+.feed{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--white);border:1px solid var(--gray2);border-radius:10px;padding:18px 20px;animation:si .35s ease;position:relative;overflow:hidden;transition:box-shadow .2s}
+.card:hover{box-shadow:0 2px 12px rgba(11,61,145,.06)}
+@keyframes si{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.card.unread{border-left:3px solid var(--navy)}
+.card.direct{border-left:3px solid var(--teal)}
+
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:8px}
+.card-title{font-weight:600;font-size:15px;color:var(--text)}
+.card-meta{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.new-pill{background:var(--navy);color:var(--white);font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:.05em}
+.direct-pill{background:var(--teal-pale);color:var(--teal);border:1px solid var(--teal-pale2);font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:.05em}
+.card-time{font-size:10px;color:var(--gray4);font-variant-numeric:tabular-nums}
+.card-sender{font-size:11px;color:var(--gray4);margin-bottom:6px;font-weight:500}
+
+.card-body{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:8px}
+
+/* FILE PREVIEWS */
+.fp{margin-top:10px}
+.fp img{max-width:100%;border-radius:8px;border:1px solid var(--gray2);max-height:280px;object-fit:cover}
+.fp video{max-width:100%;border-radius:8px;border:1px solid var(--gray2)}
+.fp audio{width:100%;margin-top:4px}
+.flink{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;background:var(--navy-pale);border:1px solid var(--navy-pale2);border-radius:6px;font-size:12px;color:var(--navy);text-decoration:none;font-weight:500;transition:all .2s}
+.flink:hover{background:var(--navy-pale2)}
+
+.card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--gray2)}
+.read-btn{padding:6px 14px;border-radius:6px;border:1.5px solid var(--navy);background:transparent;color:var(--navy);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'IBM Plex Sans',sans-serif}
+.read-btn:hover{background:var(--navy-pale)}
+.read-ind{font-size:11px;color:var(--teal);font-weight:500;display:flex;align-items:center;gap:5px}
+
+.empty{text-align:center;color:var(--gray4);font-size:14px;padding:64px 0;background:var(--white);border:1px solid var(--gray2);border-radius:10px}
+.empty-ico{font-size:40px;margin-bottom:10px}
+.empty-text{font-size:14px;color:var(--gray4)}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--white);border:1px solid var(--gray2);border-radius:9px;padding:12px 18px;font-size:13px;z-index:100;transform:translateY(70px);opacity:0;transition:all .3s;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-left:3px solid var(--ok)}
+.toast.err{border-left:3px solid var(--err)}
+.toast.info{border-left:3px solid var(--navy)}
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="tl">
+    <div class="logo-m">📡</div>
+    <span class="logo-n">Broadcast</span>
+    <div class="topbar-div"></div>
+    <span class="page-sub">Member Portal</span>
+  </div>
+  <div class="tr">
+    <div class="user-chip"><div class="uav" id="uav"></div><span id="uname"></span></div>
+    <button class="out-btn" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+
+<div class="content-wrap">
+  <div class="page-head">
+    <h1>Messages</h1>
+    <span class="unread-pill" id="unreadPill" style="display:none"></span>
+  </div>
+  <div class="filter-tabs">
+    <div class="ftab active" onclick="setFilter('all',this)">All Messages</div>
+    <div class="ftab" onclick="setFilter('unread',this)">Unread</div>
+    <div class="ftab" onclick="setFilter('direct',this)">Direct</div>
+  </div>
+  <div class="feed" id="feed">
+    <div class="empty"><div class="empty-ico">📭</div><div class="empty-text">Loading messages…</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const token=localStorage.getItem('token'),user=JSON.parse(localStorage.getItem('user')||'null');
+if(!token||!user||user.role!=='member') window.location.href='/login.html';
+document.getElementById('uname').textContent=user.name;
+document.getElementById('uav').textContent=user.name[0].toUpperCase();
+
+const socket=io();
+socket.emit('join',{userId:user.id,role:'member'});
+socket.on('new_message',(m)=>{
+  if(!m.target_id||m.target_id===user.id||m.target_type==='all'){
+    messages.unshift(m);render();toast(`New message: ${m.title}`,'info');
+    if(Notification.permission==='granted') new Notification('Broadcast: '+m.title,{body:m.body||''});
+  }
+});
+socket.on('request_decision',({userId,status})=>{
+  if(userId===user.id&&status==='approved') toast('You have been approved to the group!','ok');
+});
+
+let messages=[],readSet=new Set(),currentFilter='all';
+
+async function api(m,u,b){
+  const o={method:m,headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'}};
+  if(b)o.body=JSON.stringify(b);
+  return(await fetch(u,o)).json();
+}
+
+async function load(){
+  const data=await api('GET','/api/member/messages');
+  messages=data;data.filter(m=>m.read).forEach(m=>readSet.add(m.id));
+  render();
+  if(Notification.permission==='default') Notification.requestPermission();
+}
+
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');render();
+}
+
+function render(){
+  const feed=document.getElementById('feed');
+  const unread=messages.filter(m=>!readSet.has(m.id)).length;
+  const pill=document.getElementById('unreadPill');
+  unread>0?(pill.textContent=`${unread} unread`,pill.style.display='inline-block'):(pill.style.display='none');
+
+  let list=messages;
+  if(currentFilter==='unread') list=messages.filter(m=>!readSet.has(m.id));
+  if(currentFilter==='direct') list=messages.filter(m=>m.target_type==='user');
+
+  if(!list.length){
+    const emptyText=currentFilter==='unread'?'All caught up! No unread messages.':'No messages here yet.';
+    feed.innerHTML=`<div class="empty"><div class="empty-ico">${currentFilter==='unread'?'✅':'📭'}</div><div class="empty-text">${emptyText}</div></div>`;
+    return;
+  }
+
+  feed.innerHTML=list.map(m=>{
+    const isRead=readSet.has(m.id),isDirect=m.target_type==='user';
+    return`<div class="card ${isRead?'':'unread'} ${isDirect?'direct':''}">
+      <div class="card-head">
+        <div class="card-title">${esc(m.title)}</div>
+        <div class="card-meta">
+          ${isDirect?'<span class="direct-pill">Direct</span>':''}
+          ${!isRead?'<span class="new-pill">New</span>':''}
+          <span class="card-time">${fmt(m.created_at)}</span>
+        </div>
+      </div>
+      <div class="card-sender">From: ${esc(m.sender_name||'Admin')}</div>
+      ${m.body?`<div class="card-body">${esc(m.body)}</div>`:''}
+      ${m.file_url?renderFile(m):''}
+      <div class="card-foot">
+        ${!isRead
+          ?`<button class="read-btn" onclick="markRead('${m.id}')">✓ Mark as Read</button>`
+          :`<div class="read-ind">✓✓ Read${m.readAt?' · '+fmt(m.readAt):''}</div>`}
+        <span style="font-size:11px;color:var(--gray4)">${isRead?'Seen':'Pending read'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderFile(m){
+  const u=m.file_url,n=esc(m.file_original||''),mi=m.file_mime||'';
+  if(mi.startsWith('image/')) return`<div class="fp"><img src="${u}" alt="${n}"/></div>`;
+  if(mi.startsWith('video/')) return`<div class="fp"><video controls src="${u}"></video></div>`;
+  if(mi.startsWith('audio/')) return`<div class="fp"><audio controls src="${u}"></audio></div>`;
+  return`<div class="fp"><a class="flink" href="${u}" target="_blank">${mi==='application/pdf'?'📄':'📎'} ${n}</a></div>`;
+}
+
+async function markRead(id){
+  await api('POST',`/api/member/messages/${id}/read`);
+  readSet.add(id);render();
+}
+
+function logout(){localStorage.clear();window.location.href='/login.html';}
+function toast(msg,type='ok'){
+  const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type} show`;
+  setTimeout(()=>t.className='toast',3000);
+}
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmt(iso){return new Date(iso).toLocaleString();}
+
+load();
+</script>
+</body>
+</html>
