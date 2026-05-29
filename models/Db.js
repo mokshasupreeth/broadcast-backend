@@ -11,7 +11,8 @@ if (!fs.existsSync(dbDir)) {
   });
 }
 
-const db = new Database('./data/broadcast.db');
+const dbPath = process.env.DB_PATH || './data/broadcast.db';
+const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
