@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Broadcast — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B3D91;--navy-dk:#082d6e;--navy-lt:#1a4fa8;--navy-pale:#e8eef8;
+  --teal:#0F6C74;--teal-lt:#138a94;--teal-pale:#e6f3f4;
+  --white:#FFFFFF;--gray:#F5F7FA;--gray2:#E8ECF2;--gray3:#C8D0DC;--gray4:#8896AA;
+  --text:#14213d;--text2:#3a4d68;
+  --err:#be2a2a;--err-bg:#fdf1f1;--ok:#0F6C74;--ok-bg:#e6f3f4;--warn:#9c6700;--warn-bg:#fef9ec;
+}
+*{font-family:'IBM Plex Sans',sans-serif}
+body{background:var(--gray);color:var(--text);min-height:100vh;display:flex}
+
+.left{
+  width:44%;background:var(--navy);
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:52px 56px;position:relative;overflow:hidden;
+}
+.left::before{content:'';position:absolute;top:-100px;right:-100px;width:420px;height:420px;border-radius:50%;background:rgba(15,108,116,.2);pointer-events:none}
+.left::after{content:'';position:absolute;bottom:-100px;left:-80px;width:320px;height:320px;border-radius:50%;background:rgba(255,255,255,.03);pointer-events:none}
+.left-stripe{position:absolute;top:0;left:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--teal),rgba(15,108,116,.2))}
+
+.brand{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+.brand-icon{width:46px;height:46px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.brand-name{font-family:'Source Serif 4',serif;font-size:21px;font-weight:700;color:var(--white);letter-spacing:-.2px}
+.brand-tag{font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em;margin-top:1px}
+
+.hero{position:relative;z-index:1}
+.hero-label{font-size:11px;color:var(--teal-lt);text-transform:uppercase;letter-spacing:.14em;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.hero-label::before{content:'';width:20px;height:1px;background:var(--teal-lt)}
+.hero h1{font-family:'Source Serif 4',serif;font-size:34px;font-weight:700;color:var(--white);line-height:1.25;margin-bottom:16px;letter-spacing:-.4px}
+.hero p{font-size:14px;color:rgba(255,255,255,.6);line-height:1.75;max-width:300px}
+
+.feats{position:relative;z-index:1}
+.feat{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.feat-icon{font-size:14px;margin-top:1px;flex-shrink:0}
+.feat-text{font-size:13px;color:rgba(255,255,255,.65);line-height:1.5}
+
+.right{flex:1;display:flex;align-items:center;justify-content:center;padding:48px 64px;background:var(--white)}
+.form-box{width:100%;max-width:380px}
+
+.seal{text-align:center;margin-bottom:28px}
+.seal-ring{width:52px;height:52px;border-radius:50%;background:var(--navy-pale);border:2px solid var(--navy);display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:8px}
+.seal-text{font-size:11px;color:var(--gray4);text-transform:uppercase;letter-spacing:.1em}
+
+.tabs{display:flex;border-bottom:2px solid var(--gray2);margin-bottom:28px}
+.tab{padding:9px 0;margin-right:24px;font-size:13px;font-weight:600;color:var(--gray4);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;letter-spacing:.01em}
+.tab.active{color:var(--navy);border-bottom-color:var(--navy)}
+
+.ftitle{font-family:'Source Serif 4',serif;font-size:24px;font-weight:700;color:var(--text);margin-bottom:5px;letter-spacing:-.3px}
+.fsub{font-size:13px;color:var(--gray4);margin-bottom:24px}
+
+.field{margin-bottom:16px}
+label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+input{width:100%;background:var(--white);border:1.5px solid var(--gray3);border-radius:7px;color:var(--text);font-size:14px;padding:11px 13px;outline:none;transition:border-color .2s,box-shadow .2s}
+input:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(11,61,145,.08)}
+
+.btn{width:100%;background:var(--navy);color:var(--white);border:none;border-radius:7px;font-size:14px;font-weight:600;padding:13px;cursor:pointer;margin-top:6px;transition:background .2s,transform .1s;letter-spacing:.01em}
+.btn:hover{background:var(--navy-lt)}.btn:active{transform:scale(.98)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sec{background:transparent;border:1.5px solid var(--navy);color:var(--navy);margin-top:10px}
+.btn.sec:hover{background:var(--navy-pale)}
+
+.alert{border-radius:7px;padding:11px 14px;font-size:13px;margin-top:12px;display:none;line-height:1.5;border-left:3px solid}
+.alert.error{background:var(--err-bg);border-color:var(--err);color:var(--err)}
+.alert.success{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.alert.info{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+
+.pass-req{background:var(--gray);border:1px solid var(--gray2);border-radius:7px;padding:11px 13px;margin-top:7px;display:none}
+.rrow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gray4);padding:3px 0;transition:color .2s}
+.rrow.ok{color:var(--ok)}.rdot{width:6px;height:6px;border-radius:50%;background:var(--gray3);flex-shrink:0;transition:background .2s}.rrow.ok .rdot{background:var(--ok)}
+
+.divider{display:flex;align-items:center;gap:12px;margin:18px 0;font-size:11px;color:var(--gray4)}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--gray2)}
+
+@media(max-width:760px){.left{display:none}.right{padding:32px 20px}}
+</style>
+</head>
+<body>
+
+<div class="left">
+  <div class="left-stripe"></div>
+  <div class="brand">
+    <div class="brand-icon">📡</div>
+    <div><div class="brand-name">Broadcast</div><div class="brand-tag">Secure Communication System</div></div>
+  </div>
+  <div class="hero">
+    <div class="hero-label">Platform Overview</div>
+    <h1>Authorised<br/>Group Messaging</h1>
+    <p>A secure, role-based communication platform with admin controls, delivery tracking, and full message history.</p>
+  </div>
+  <div class="feats">
+    <div class="feat"><div class="feat-icon">🔐</div><div class="feat-text">Admin-controlled access with join request approval</div></div>
+    <div class="feat"><div class="feat-icon">📊</div><div class="feat-text">Analytics dashboard with read receipt tracking</div></div>
+    <div class="feat"><div class="feat-icon">🎯</div><div class="feat-text">Target individuals, groups, or all members</div></div>
+    <div class="feat"><div class="feat-icon">🗄️</div><div class="feat-text">Persistent message history — never lose data</div></div>
+  </div>
+</div>
+
+<div class="right">
+  <div class="form-box">
+    <div class="seal">
+      <div class="seal-ring">📡</div>
+      <div class="seal-text">Authorised Access Only</div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" id="tab-login" onclick="showTab('login')">Sign In</div>
+      <div class="tab" id="tab-register" onclick="showTab('register')">Register</div>
+    </div>
+
+    <div id="panel-login">
+      <div class="ftitle">Sign in</div>
+      <div class="fsub">Enter your credentials to access the system</div>
+      <div class="field"><label>Email Address</label><input type="email" id="l-email" placeholder="your@email.com" autocomplete="email"/></div>
+      <div class="field"><label>Password</label><input type="password" id="l-pass" placeholder="Your password" autocomplete="current-password"/></div>
+      <button class="btn" id="loginBtn" onclick="login()">Sign In →</button>
+      <button class="btn sec" id="reqBtn" onclick="requestJoin()" style="display:none">Request Group Access</button>
+      <div class="alert" id="l-alert"></div>
+    </div>
+
+    <div id="panel-register" style="display:none">
+      <div class="ftitle">Register</div>
+      <div class="fsub">Create an account to request group access</div>
+      <div class="field"><label>Full Name</label><input type="text" id="r-name" placeholder="Your full name"/></div>
+      <div class="field"><label>Email Address</label><input type="email" id="r-email" placeholder="your@email.com"/></div>
+      <div class="field"><label>Username</label><input type="text" id="r-user" placeholder="At least 3 characters"/></div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="r-pass" placeholder="Min 8 chars + 1 special character" oninput="checkPass(this.value)"/>
+        <div class="pass-req" id="passReq">
+          <div class="rrow" id="req-len"><div class="rdot"></div>At least 8 characters</div>
+          <div class="rrow" id="req-spec"><div class="rdot"></div>At least one special character</div>
+        </div>
+      </div>
+      <button class="btn" id="regBtn" onclick="register()">Create Account</button>
+      <div class="alert" id="r-alert"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const token=localStorage.getItem('token'),user=JSON.parse(localStorage.getItem('user')||'null');
+if(token&&user) window.location.href=user.role==='admin'?'/admin.html':'/member.html';
+let pendingUserId=null;
+
+function showTab(tab){
+  ['login','register'].forEach(t=>{
+    document.getElementById(`tab-${t}`).classList.toggle('active',t===tab);
+    document.getElementById(`panel-${t}`).style.display=t===tab?'':'none';
+  });
+}
+document.getElementById('l-pass').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+
+function checkPass(v){
+  const req=document.getElementById('passReq');req.style.display=v?'block':'none';
+  const lenOk=v.length>=8,specOk=/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(v);
+  document.getElementById('req-len').className='rrow'+(lenOk?' ok':'');
+  document.getElementById('req-spec').className='rrow'+(specOk?' ok':'');
+}
+
+async function login(){
+  const email=document.getElementById('l-email').value.trim(),password=document.getElementById('l-pass').value;
+  const btn=document.getElementById('loginBtn');
+  if(!email||!password){showA('l-alert','Email and password required','error');return;}
+  btn.disabled=true;btn.textContent='Signing in…';hideA('l-alert');
+  try{
+    const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+    const data=await res.json();
+    if(res.status===403){
+      if(data.error==='not_requested'){pendingUserId=data.userId;showA('l-alert',data.message,'info');document.getElementById('reqBtn').style.display='block';}
+      else showA('l-alert',data.message,data.error==='pending'?'info':'error');
+      btn.disabled=false;btn.textContent='Sign In →';return;
+    }
+    if(!res.ok)throw new Error(data.error||'Login failed');
+    localStorage.setItem('token',data.token);localStorage.setItem('user',JSON.stringify(data.user));
+    window.location.href=data.user.role==='admin'?'/admin.html':'/member.html';
+  }catch(e){showA('l-alert',e.message,'error');btn.disabled=false;btn.textContent='Sign In →';}
+}
+
+async function register(){
+  const name=document.getElementById('r-name').value.trim(),email=document.getElementById('r-email').value.trim();
+  const username=document.getElementById('r-user').value.trim(),password=document.getElementById('r-pass').value;
+  const btn=document.getElementById('regBtn');btn.disabled=true;btn.textContent='Creating…';hideA('r-alert');
+  try{
+    const res=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,username,password})});
+    const data=await res.json();if(!res.ok)throw new Error(data.error);
+    showA('r-alert','✓ Account created. Sign in and request group access.','success');
+    setTimeout(()=>showTab('login'),2500);
+  }catch(e){showA('r-alert',e.message,'error');}
+  btn.disabled=false;btn.textContent='Create Account';
+}
+
+async function requestJoin(){
+  if(!pendingUserId)return;const btn=document.getElementById('reqBtn');btn.disabled=true;btn.textContent='Sending…';
+  try{
+    const res=await fetch('/api/auth/request-join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:pendingUserId})});
+    const data=await res.json();
+    if(data.success){showA('l-alert','✓ Request sent. Awaiting admin approval.','success');btn.style.display='none';}
+  }catch(e){showA('l-alert','Failed to send request','error');btn.disabled=false;btn.textContent='Request Group Access';}
+}
+
+function showA(id,msg,type){const el=document.getElementById(id);el.textContent=msg;el.className=`alert ${type}`;el.style.display='block';}
+function hideA(id){document.getElementById(id).style.display='none';}
+</script>
+</body>
+</html>
