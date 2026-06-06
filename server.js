@@ -61,13 +61,21 @@ if (!fs.existsSync(uploadDir)) {
   });
 }
 
+// ======================
 // EMAIL
+// ======================
 
 const transporter =
   nodemailer.createTransport({
-    service: 'gmail',
+
+    host: 'smtp.gmail.com',
+
+    port: 587,
+
+    secure: false,
 
     auth: {
+
       user:
         process.env.EMAIL_USER,
 
@@ -76,12 +84,13 @@ const transporter =
     }
   });
 
-transporter.verify((err) => {
+// Verify SMTP
+transporter.verify((err, success) => {
 
   if (err) {
 
     console.log(
-      '❌ Gmail SMTP Error:',
+      '❌ EMAIL ERROR:',
       err.message
     );
 
@@ -93,6 +102,7 @@ transporter.verify((err) => {
   }
 });
 
+// Store transporter
 app.set(
   'transporter',
   transporter
