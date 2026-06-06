@@ -15,13 +15,11 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST', 'DELETE']
+    methods: ['GET', 'POST', 'PUT', 'DELETE']
   }
 });
 
-// ======================
 // MIDDLEWARE
-// ======================
 
 app.use(cors());
 
@@ -49,12 +47,13 @@ app.use(
   )
 );
 
-// ======================
 // UPLOADS
-// ======================
 
 const uploadDir =
-  './public/uploads';
+  path.join(
+    __dirname,
+    'public/uploads'
+  );
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, {
@@ -62,9 +61,7 @@ if (!fs.existsSync(uploadDir)) {
   });
 }
 
-// ======================
 // EMAIL
-// ======================
 
 const transporter =
   nodemailer.createTransport({
@@ -79,29 +76,29 @@ const transporter =
     }
   });
 
-transporter.verify(
-  (err) => {
-    if (err) {
-      console.log(
-        '❌ EMAIL ERROR:',
-        err.message
-      );
-    } else {
-      console.log(
-        '✅ Gmail SMTP Ready'
-      );
-    }
+transporter.verify((err) => {
+
+  if (err) {
+
+    console.log(
+      '❌ Gmail SMTP Error:',
+      err.message
+    );
+
+  } else {
+
+    console.log(
+      '✅ Gmail SMTP Ready'
+    );
   }
-);
+});
 
 app.set(
   'transporter',
   transporter
 );
 
-// ======================
-// SOCKETS
-// ======================
+// SOCKET
 
 const connectedMembers =
   new Map();
@@ -111,249 +108,204 @@ app.set(
   connectedMembers
 );
 
-app.set('io', io);
+app.set(
+  'io',
+  io
+);
 
-io.on('connection', (socket) => {
+function setUserOnline(
+  userId,
+  online
+) {
 
-  socket.on('join', ({ userId, role }) => {
+  try {
 
-    socket.userId = userId;
-    socket.role = role;
+    const {
+      userProfileQueries
+    } =
+      require(
+        './models/Db'
+      );
 
-    socket.join(`user:${userId}`);
+    const user =
+      userProfileQueries
+      .findByUserId
+      .get(userId);
 
-    if (
-      role === 'member' ||
-      role === 'admin'
-    ) {
+    if (!user) {
 
-      connectedMembers.set(
+      userProfileQueries
+      .upsert
+      .run(
         userId,
-        socket.id
+        null,
+        'Hey there! I am using Broadcast.',
+        null,
+        online ? 1 : 0
       );
 
-      io.emit(
-        'online_count',
-        {
-          count:
-            connectedMembers.size
-        }
-      );
+    } else {
 
-      io.emit(
-        'user_online',
-        {
+      userProfileQueries
+      .updateOnline
+      .run(
+        online ? 1 : 0,
+        userId
+      );
+    }
+
+  } catch (e) {
+
+    console.log(
+      e.message
+    );
+  }
+}
+
+io.on(
+  'connection',
+  (socket) => {
+
+    socket.on(
+      'join',
+      ({
+        userId,
+        role
+      }) => {
+
+        socket.userId =
+          userId;
+
+        socket.role =
+          role;
+
+        socket.join(
+          `user:${userId}`
+        );
+
+        connectedMembers.set(
           userId,
-          online: true
-        }
-      );
+          socket.id
+        );
 
-      // ======================
-      // PROFILE ONLINE UPDATE
-      // ======================
-
-      try {
-
-        const {
-          userProfileQueries
-        } = require('./models/Db');
-
-        const existing =
-          userProfileQueries
-            .findByUserId
-            .get(userId);
-
-        if (!existing) {
-
-          userProfileQueries
-            .upsert
-            .run(
-              userId,
-              null,
-              'Hey there! I am using Broadcast.',
-              null,
-              1
-            );
-
-        } else {
-
-          userProfileQueries
-            .updateOnline
-            .run(
-              1,
-              userId
-            );
-        }
-
-      } catch (e) {
-        console.log(
-          'PROFILE UPDATE ERROR:',
-          e.message
+        setUserOnline(
+          userId,
+          true
         );
       }
-    }
-  });
+    );
 
-  // ======================
-  // TYPING
-  // ======================
+    socket.on(
+      'join_group',
+      ({
+        groupId
+      }) => {
 
-  socket.on(
-    'typing',
-    ({
-      chatId,
-      chatType,
-      toUserId
-    }) => {
-
-      if (
-        chatType === 'private'
-      ) {
-
-        io.to(
-          `user:${toUserId}`
-        ).emit(
-          'typing',
-          {
-            chatId,
-            userId:
-              socket.userId
-          }
-        );
-
-      } else {
-
-        socket.to(
-          `group:${chatId}`
-        ).emit(
-          'typing',
-          {
-            chatId,
-            userId:
-              socket.userId
-          }
+        socket.join(
+          `group:${groupId}`
         );
       }
-    }
-  );
+    );
 
-  socket.on(
-    'stop_typing',
-    ({
-      chatId,
-      chatType,
-      toUserId
-    }) => {
+    socket.on(
+      'disconnect',
+      () => {
 
-      if (
-        chatType === 'private'
-      ) {
-
-        io.to(
-          `user:${toUserId}`
-        ).emit(
-          'stop_typing',
-          {
-            chatId,
-            userId:
-              socket.userId
-          }
-        );
-
-      } else {
-
-        socket.to(
-          `group:${chatId}`
-        ).emit(
-          'stop_typing',
-          {
-            chatId,
-            userId:
-              socket.userId
-          }
-        );
-      }
-    }
-  );
-
-  // ======================
-  // GROUP JOIN
-  // ======================
-
-  socket.on(
-    'join_group',
-    ({ groupId }) => {
-
-      socket.join(
-        `group:${groupId}`
-      );
-    }
-  );
-
-  // ======================
-  // DISCONNECT
-  // ======================
-
-  socket.on(
-    'disconnect',
-    () => {
-
-      if (socket.userId) {
-
-        connectedMembers.delete(
+        if (
           socket.userId
-        );
+        ) {
 
-        io.emit(
-          'online_count',
-          {
-            count:
-              connectedMembers.size
-          }
-        );
+          connectedMembers.delete(
+            socket.userId
+          );
 
-        io.emit(
-          'user_online',
-          {
-            userId:
-              socket.userId,
-            online: false
-          }
-        );
-
-        try {
-
-          const {
-            userProfileQueries
-          } = require('./models/Db');
-
-          userProfileQueries
-            .updateOnline
-            .run(
-              0,
-              socket.userId
-            );
-
-        } catch (e) {
-          console.log(
-            'OFFLINE UPDATE ERROR:',
-            e.message
+          setUserOnline(
+            socket.userId,
+            false
           );
         }
       }
+    );
+  }
+);
+
+// HEALTH
+
+app.get(
+  '/',
+  (
+    req,
+    res
+  ) => {
+
+    res.json({
+      success: true,
+      message:
+        'Broadcast Backend Running'
+    });
+  }
+);
+
+// TEST MAIL
+
+app.get(
+  '/test-mail',
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const info =
+        await transporter
+        .sendMail({
+
+          from:
+            process.env.EMAIL_USER,
+
+          to:
+            process.env.EMAIL_USER,
+
+          subject:
+            'Broadcast SMTP Test',
+
+          text:
+            'Mail service working'
+        });
+
+      res.json({
+
+        success:
+          true,
+
+        message:
+          'MAIL OK',
+
+        id:
+          info.messageId
+      });
+
+    } catch (e) {
+
+      console.log(
+        e
+      );
+
+      res.status(500)
+      .json({
+
+        success:
+          false,
+
+        error:
+          e.message
+      });
     }
-  );
-});
-app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Broadcast Backend Running'
-  });
-});
-// ======================
+  }
+);
+
 // ROUTES
-// ======================
-// DEBUG — DB లో chats చూడటానికి
 
 app.use(
   '/api/auth',
@@ -375,25 +327,23 @@ app.use(
   require('./routes/member')
 );
 
-// ======================
-// CHAT ROUTE
-// ======================
-
 app.use(
   '/api/chat',
   require('./routes/chat')
 );
 
-// ======================
 // START
-// ======================
 
 const PORT =
-  process.env.PORT || 3000;
+  process.env.PORT ||
+  3000;
 
-server.listen(PORT, () => {
+server.listen(
+  PORT,
+  () => {
 
-  console.log(
-    `🚀 Server running on ${PORT}`
-  );
-});
+    console.log(
+      `🚀 Server running on ${PORT}`
+    );
+  }
+);
