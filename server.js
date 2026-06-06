@@ -304,29 +304,7 @@ app.get(
     }
   }
 );
-app.get('/test-mail', async (req, res) => {
-  try {
-    const transporter = app.get('transporter');
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER,
-      subject: 'Broadcast SMTP Test',
-      text: 'SMTP working successfully'
-    });
-
-    res.json({
-      success: true,
-      message: 'MAIL OK'
-    });
-
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
-  }
-});
 // ROUTES
 
 app.use(
