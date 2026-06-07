@@ -5,6 +5,16 @@ const resend =
     process.env.RESEND_API_KEY
   );
 
+console.log(
+  'RESEND EXISTS:',
+  !!process.env.RESEND_API_KEY
+);
+
+console.log(
+  'RESEND LENGTH:',
+  process.env.RESEND_API_KEY?.length
+);
+
 exports.sendOTP =
 async (email, otp) => {
 
@@ -30,9 +40,9 @@ async (email, otp) => {
       });
 
     console.log(
-  'EMAIL SENT:',
-  response
-);
+      'EMAIL SENT:',
+      response
+    );
 
     return response;
 
