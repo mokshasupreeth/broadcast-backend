@@ -30,8 +30,9 @@ async (email, otp) => {
       });
 
     console.log(
-      'EMAIL SENT'
-    );
+  'EMAIL SENT:',
+  response
+);
 
     return response;
 
@@ -39,7 +40,7 @@ async (email, otp) => {
 
     console.log(
       'EMAIL ERROR:',
-      err.message
+      err
     );
 
     throw err;
