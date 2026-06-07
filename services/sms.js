@@ -1,12 +1,3 @@
-console.log(
-'FAST2SMS EXISTS:',
-!!process.env.FAST2SMS_API_KEY
-);
-
-console.log(
-'FAST2SMS LENGTH:',
-process.env.FAST2SMS_API_KEY?.length
-);
 const axios = require('axios');
 
 const FAST2SMS_KEY =
