@@ -131,4 +131,4 @@ router.post('/verify-sms-otp', (req, res) => {
     message: 'Phone verified'
   });
 
-});
+});module.exports = router;
