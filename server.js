@@ -64,7 +64,6 @@ if (!fs.existsSync(uploadDir)) {
 // EMAIL
 // ======================
 
-);
 
 // SOCKET
 
@@ -211,31 +210,8 @@ app.get(
       message:
         'Broadcast Backend Running'
     });
+
   }
-);
-
-// TEST MAIL
-
-app.get(
-  '/test-mail',
-  async (
-    req,
-    res
-  ) => {
-
-    try {
-
-      const info =
-        .sendMail({
-
-          from:
-            process.env.EMAIL_USER,
-
-          to:
-            process.env.EMAIL_USER,
-
-          subject:
-            'Broadcast SMTP Test',
 );
 
 app.use(
