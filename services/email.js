@@ -1,107 +1,49 @@
-const response =
-  await resend.emails.send({
+const { Resend } = require('resend');
 
-    from:
-      'Broadcast <onboarding@resend.dev>',
+const resend =
+  new Resend(
+    process.env.RESEND_API_KEY
+  );
 
-    to:
-      email,
+exports.sendOTP =
+async (email, otp) => {
 
-    subject:
-      'Your Password Reset OTP',
+  try {
 
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto;">
+    const response =
+      await resend.emails.send({
 
-        <div
-          style="
-            background:#2563EB;
-            padding:24px;
-            text-align:center;
-            border-radius:12px 12px 0 0;
-          "
-        >
+        from:
+          'Broadcast <onboarding@resend.dev>',
 
-          <h1
-            style="
-              color:white;
-              margin:0;
-            "
-          >
-            📡 Broadcast
-          </h1>
+        to:
+          email,
 
-        </div>
+        subject:
+          'Your Password Reset OTP',
 
-        <div
-          style="
-            background:#f8fafc;
-            padding:24px;
-            border-radius:0 0 12px 12px;
-          "
-        >
+        html: `
+          <h2>Your OTP is ${otp}</h2>
+          <p>Valid for 10 minutes.</p>
+        `
 
-          <h2
-            style="
-              color:#1E293B;
-            "
-          >
-            Your OTP Code
-          </h2>
+      });
 
-          <p
-            style="
-              color:#64748B;
-            "
-          >
-            Use this OTP to verify.
-            Valid for 10 minutes.
-          </p>
+    console.log(
+      'EMAIL SENT'
+    );
 
-          <div
-            style="
-              background:white;
-              border:2px solid #2563EB;
-              border-radius:12px;
-              padding:20px;
-              text-align:center;
-              margin:20px 0;
-            "
-          >
+    return response;
 
-            <h1
-              style="
-                color:#2563EB;
-                font-size:36px;
-                letter-spacing:8px;
-                margin:0;
-              "
-            >
-              ${otp}
-            </h1>
+  } catch (err) {
 
-          </div>
+    console.log(
+      'EMAIL ERROR:',
+      err.message
+    );
 
-          <p
-            style="
-              color:#94A3B8;
-              font-size:12px;
-            "
-          >
-            If you didn't request this,
-            ignore this email.
-          </p>
+    throw err;
 
-        </div>
+  }
 
-      </div>
-    `
-
-  });
-
-console.log(
-  'EMAIL SENT:',
-  response
-);
-
-return response;
+};

@@ -6,7 +6,6 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const nodemailer = require('nodemailer');
 
 const app = express();
 
@@ -65,47 +64,6 @@ if (!fs.existsSync(uploadDir)) {
 // EMAIL
 // ======================
 
-const transporter =
-  nodemailer.createTransport({
-
-    host: 'smtp.gmail.com',
-
-    port: 587,
-
-    secure: false,
-
-    auth: {
-
-      user:
-        process.env.EMAIL_USER,
-
-      pass:
-        process.env.EMAIL_PASS
-    }
-  });
-
-// Verify SMTP
-transporter.verify((err, success) => {
-
-  if (err) {
-
-    console.log(
-      '❌ EMAIL ERROR:',
-      err.message
-    );
-
-  } else {
-
-    console.log(
-      '✅ Gmail SMTP Ready'
-    );
-  }
-});
-
-// Store transporter
-app.set(
-  'transporter',
-  transporter
 );
 
 // SOCKET
@@ -279,57 +237,6 @@ app.get(
 
           subject:
             'Broadcast SMTP Test',
-
-          text:
-            'Mail service working'
-        });
-
-      res.json({
-
-        success:
-          true,
-
-        message:
-          'MAIL OK',
-
-        id:
-          info.messageId
-      });
-
-    } catch (e) {
-
-      console.log(
-        e
-      );
-
-      res.status(500)
-      .json({
-
-        success:
-          false,
-
-        error:
-          e.message
-      });
-    }
-  }
-);
-
-// ROUTES
-
-app.use(
-  '/api/auth',
-  require('./routes/auth')
-);
-
-app.use(
-  '/api/forgot',
-  require('./routes/forgot')
-);
-
-app.use(
-  '/api/admin',
-  require('./routes/admin')
 );
 
 app.use(
