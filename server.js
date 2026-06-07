@@ -226,7 +226,6 @@ app.get(
     try {
 
       const info =
-        await transporter
         .sendMail({
 
           from:
