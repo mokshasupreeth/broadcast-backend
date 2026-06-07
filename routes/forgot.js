@@ -82,17 +82,53 @@ router.post('/send-sms-otp', async (req, res) => {
 });
 
 // POST /api/forgot/verify-sms-otp
+// POST /api/forgot/verify-sms-otp
 router.post('/verify-sms-otp', (req, res) => {
+
   const { phone, otp } = req.body;
-  if (!phone || !otp) return res.status(400).json({ error: 'Phone and OTP required' });
 
-  const email  = `phone_${phone}`;
-  const record = otpFind.get(email, otp);
-  if (!record) return res.status(400).json({ error: 'Invalid OTP' });
-  if (Date.now() > record.expires_at) return res.status(400).json({ error: 'OTP expired' });
+  if (!phone || !otp) {
+    return res.status(400).json({
+      error: 'Phone and OTP required'
+    });
+  }
 
-  otpMarkUsed.run(record.id);
-  res.json({ success: true, message: 'Phone verified' });
+  const cleanPhone =
+    phone
+      .replace(/^\+91|^91/, '')
+      .replace(/\D/g, '');
+
+  const email =
+    `phone_${cleanPhone}`;
+
+  const record =
+    otpFind.get(
+      email,
+      otp
+    );
+
+  if (!record) {
+    return res.status(400).json({
+      error: 'Invalid OTP'
+    });
+  }
+
+  if (
+    Date.now() >
+    record.expires_at
+  ) {
+    return res.status(400).json({
+      error: 'OTP expired'
+    });
+  }
+
+  otpMarkUsed.run(
+    record.id
+  );
+
+  res.json({
+    success: true,
+    message: 'Phone verified'
+  });
+
 });
-
-module.exports = router;
