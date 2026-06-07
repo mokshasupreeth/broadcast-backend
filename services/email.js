@@ -1,47 +1,57 @@
-const { Resend } = require('resend');
+const { google } = require('googleapis');
 
-const resend =
-  new Resend(
-    process.env.RESEND_API_KEY
+const oauth2Client =
+  new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
   );
 
-console.log(
-  'RESEND EXISTS:',
-  !!process.env.RESEND_API_KEY
-);
-
-console.log(
-  'RESEND LENGTH:',
-  process.env.RESEND_API_KEY?.length
-);
+oauth2Client.setCredentials({
+  refresh_token:
+    process.env.GOOGLE_REFRESH_TOKEN
+});
 
 exports.sendOTP =
 async (email, otp) => {
 
   try {
 
+    const accessToken =
+      await oauth2Client.getAccessToken();
+
+    const gmail =
+      google.gmail({
+        version: 'v1',
+        auth: oauth2Client
+      });
+
+    const message = [
+      `From: Broadcast <${process.env.EMAIL_USER}>`,
+      `To: ${email}`,
+      `Subject: Your Password Reset OTP`,
+      '',
+      `Your OTP is ${otp}`,
+      `Valid for 10 minutes`
+    ].join('\n');
+
+    const encoded =
+      Buffer
+        .from(message)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+
     const response =
-      await resend.emails.send({
-
-        from:
-          'Broadcast <onboarding@resend.dev>',
-
-        to:
-          email,
-
-        subject:
-          'Your Password Reset OTP',
-
-        html: `
-          <h2>Your OTP is ${otp}</h2>
-          <p>Valid for 10 minutes.</p>
-        `
-
+      await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: {
+          raw: encoded
+        }
       });
 
     console.log(
       'EMAIL SENT:',
-      response
+      response.data.id
     );
 
     return response;
@@ -50,7 +60,7 @@ async (email, otp) => {
 
     console.log(
       'EMAIL ERROR:',
-      err
+      err.message
     );
 
     throw err;
