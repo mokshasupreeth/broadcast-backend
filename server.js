@@ -215,8 +215,23 @@ app.get(
 );
 
 app.use(
+  '/api/auth',
+  require('./routes/auth')
+);
+
+app.use(
   '/api/member',
   require('./routes/member')
+);
+
+app.use(
+  '/api/forgot',
+  require('./routes/forgot')
+);
+
+app.use(
+  '/api/admin',
+  require('./routes/admin')
 );
 
 app.use(
