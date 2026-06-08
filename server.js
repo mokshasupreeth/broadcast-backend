@@ -79,6 +79,7 @@ app.set(
   'io',
   io
 );
+ 
 
 function setUserOnline(
   userId,
@@ -238,6 +239,7 @@ app.use(
   '/api/chat',
   require('./routes/chat')
 );
+
 
 // START
 
