@@ -114,6 +114,15 @@ export const unarchiveChat = chatId =>
 export const getChatUsers = () =>
   api.get('/api/chat/users');
 
+// SCHEDULING
+export const scheduleMessage = (data) => api.post('/api/admin/messages/schedule', data);
+export const getScheduledMessages = () => api.get('/api/admin/messages/scheduled');
+export const deleteScheduledMessage = (id) => api.delete(`/api/admin/messages/scheduled/${id}`);
+
+// PINNING
+export const pinMessage = (id) => api.post(`/api/admin/messages/${id}/pin`);
+export const unpinMessage = (id) => api.delete(`/api/admin/messages/${id}/pin`);
+export const getPinnedMessages = () => api.get('/api/admin/messages/pinned');
 // ─────────────────────────────────────
 // BROADCAST MESSAGES (Inbox)
 // ─────────────────────────────────────

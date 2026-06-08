@@ -196,7 +196,45 @@ io.on(
     );
   }
 );
+// ── MESSAGE SCHEDULER ─────────────────────────────────────────────────────────
+setInterval(async () => {
+  try {
+    const { db, userQueries, messageQueries } = require('./models/Db');
+    const due = db.prepare(`
+      SELECT * FROM messages 
+      WHERE scheduled_at IS NOT NULL 
+      AND scheduled_at <= datetime('now')
+      AND delivered = 0
+    `).all();
 
+    for (const msg of due) {
+      // Mark as delivered
+      db.prepare('UPDATE messages SET scheduled_at = NULL WHERE id = ?').run(msg.id);
+      
+      // Send to members
+      const approvedMembers = userQueries.findApproved.all('member');
+      approvedMembers.forEach(member => {
+        io.to(`user:${member.id}`).emit('new_broadcast', msg);
+      });
+
+      // Email members
+      approvedMembers.forEach(async (member) => {
+        try {
+          await transporter.sendMail({
+            from: `"Broadcast App" <${process.env.EMAIL_USER}>`,
+            to: member.email,
+            subject: `📢 ${msg.title}`,
+            html: `<div style="font-family:Arial;padding:20px;"><h2>${msg.title}</h2><p>${msg.body}</p></div>`
+          });
+        } catch (e) {}
+      });
+
+      console.log(`✅ Scheduled message sent: ${msg.title}`);
+    }
+  } catch (e) {
+    console.log('Scheduler error:', e.message);
+  }
+}, 60000); // Check every minute
 // HEALTH
 
 app.get(
