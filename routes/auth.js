@@ -102,10 +102,6 @@ router.post('/register', async (req, res) => {
   'member',
   0
 );
-// Save phone if provided
-if (req.body.phone) {
-  db.prepare('UPDATE users SET phone = ? WHERE id = ?').run(req.body.phone, id);
-}
 
     // CREATE REQUEST
     const requestId = uuidv4();

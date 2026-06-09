@@ -1,296 +1,146 @@
 require('dotenv').config();
-
 const express = require('express');
-const http = require('http');
+const http    = require('http');
 const { Server } = require('socket.io');
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
+const cors    = require('cors');
+const path    = require('path');
+const fs      = require('fs');
 
-const app = express();
-
+const app    = express();
 const server = http.createServer(app);
-
-const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE']
-  }
+const io     = new Server(server, {
+  cors: { origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'] }
 });
 
-// MIDDLEWARE
-
+// ── Middleware ────────────────────────────────────────────────────────────────
 app.use(cors());
-
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-app.use(
-  express.urlencoded({
-    extended: true
-  })
-);
+// ── Upload dir ────────────────────────────────────────────────────────────────
+const uploadDir = path.join(__dirname, 'public/uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-app.use(
-  express.static(
-    path.join(__dirname, 'public')
-  )
-);
+// ── Socket setup ──────────────────────────────────────────────────────────────
+const connectedMembers = new Map();
+app.set('connectedMembers', connectedMembers);
+app.set('io', io);
 
-app.use(
-  '/uploads',
-  express.static(
-    path.join(
-      __dirname,
-      'public/uploads'
-    )
-  )
-);
-
-// UPLOADS
-
-const uploadDir =
-  path.join(
-    __dirname,
-    'public/uploads'
-  );
-
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, {
-    recursive: true
-  });
-}
-
-// ======================
-// EMAIL
-// ======================
-
-
-// SOCKET
-
-const connectedMembers =
-  new Map();
-
-app.set(
-  'connectedMembers',
-  connectedMembers
-);
-
-app.set(
-  'io',
-  io
-);
- 
-
-function setUserOnline(
-  userId,
-  online
-) {
-
+function setUserOnline(userId, online) {
   try {
-
-    const {
-      userProfileQueries
-    } =
-      require(
-        './models/Db'
-      );
-
-    const user =
-      userProfileQueries
-      .findByUserId
-      .get(userId);
-
+    const { userProfileQueries } = require('./models/Db');
+    const user = userProfileQueries.findByUserId.get(userId);
     if (!user) {
-
-      userProfileQueries
-      .upsert
-      .run(
-        userId,
-        null,
-        'Hey there! I am using Broadcast.',
-        null,
-        online ? 1 : 0
+      userProfileQueries.upsert.run(
+        userId, null, 'Hey there! I am using Broadcast.', null, online ? 1 : 0
       );
-
     } else {
-
-      userProfileQueries
-      .updateOnline
-      .run(
-        online ? 1 : 0,
-        userId
-      );
+      userProfileQueries.updateOnline.run(online ? 1 : 0, userId);
     }
-
-  } catch (e) {
-
-    console.log(
-      e.message
-    );
-  }
+  } catch (e) { console.log(e.message); }
 }
 
-io.on(
-  'connection',
-  (socket) => {
+// ── Socket.IO ─────────────────────────────────────────────────────────────────
+io.on('connection', (socket) => {
 
-    socket.on(
-      'join',
-      ({
-        userId,
-        role
-      }) => {
+  // ── Join ──────────────────────────────────────────────────────────────────
+  socket.on('join', ({ userId, role }) => {
+    socket.userId = userId;
+    socket.role   = role;
+    socket.join(`user:${userId}`);
+    connectedMembers.set(userId, socket.id);
+    setUserOnline(userId, true);
+  });
 
-        socket.userId =
-          userId;
+  // ── Group join ────────────────────────────────────────────────────────────
+  socket.on('join_group', ({ groupId }) => {
+    socket.join(`group:${groupId}`);
+  });
 
-        socket.role =
-          role;
+  // ── Typing ────────────────────────────────────────────────────────────────
+  socket.on('typing', ({ chatId, chatType, toUserId }) => {
+    const payload = { chatId, userId: socket.userId };
+    if (chatType === 'private') io.to(`user:${toUserId}`).emit('typing', payload);
+    else socket.to(`group:${chatId}`).emit('typing', payload);
+  });
 
-        socket.join(
-          `user:${userId}`
-        );
+  socket.on('stop_typing', ({ chatId, chatType, toUserId }) => {
+    const payload = { chatId, userId: socket.userId };
+    if (chatType === 'private') io.to(`user:${toUserId}`).emit('stop_typing', payload);
+    else socket.to(`group:${chatId}`).emit('stop_typing', payload);
+  });
 
-        connectedMembers.set(
-          userId,
-          socket.id
-        );
+  // ── Disconnect ────────────────────────────────────────────────────────────
+  socket.on('disconnect', () => {
+    if (socket.userId) {
+      connectedMembers.delete(socket.userId);
+      setUserOnline(socket.userId, false);
+    }
+  });
 
-        setUserOnline(
-          userId,
-          true
-        );
-      }
-    );
+  // ── WebRTC Calling ────────────────────────────────────────────────────────
+  socket.on('call_user', ({ toUserId, fromUserId, fromName, callType, offer }) => {
+    io.to(`user:${toUserId}`).emit('incoming_call', {
+      fromUserId, fromName, callType, offer
+    });
+  });
 
-    socket.on(
-      'join_group',
-      ({
-        groupId
-      }) => {
+  socket.on('call_accepted', ({ toUserId, answer }) => {
+    io.to(`user:${toUserId}`).emit('call_accepted', { answer });
+  });
 
-        socket.join(
-          `group:${groupId}`
-        );
-      }
-    );
+  socket.on('call_rejected', ({ toUserId }) => {
+    io.to(`user:${toUserId}`).emit('call_rejected');
+  });
 
-    socket.on(
-      'disconnect',
-      () => {
+  socket.on('call_ended', ({ toUserId }) => {
+    io.to(`user:${toUserId}`).emit('call_ended');
+  });
 
-        if (
-          socket.userId
-        ) {
+  socket.on('ice_candidate', ({ toUserId, candidate }) => {
+    io.to(`user:${toUserId}`).emit('ice_candidate', { candidate });
+  });
+  // ── End WebRTC ────────────────────────────────────────────────────────────
+});
 
-          connectedMembers.delete(
-            socket.userId
-          );
-
-          setUserOnline(
-            socket.userId,
-            false
-          );
-        }
-      }
-    );
-  }
-);
-// ── MESSAGE SCHEDULER ─────────────────────────────────────────────────────────
+// ── Message Scheduler ─────────────────────────────────────────────────────────
 setInterval(async () => {
   try {
-    const { db, userQueries, messageQueries } = require('./models/Db');
+    const { db, userQueries } = require('./models/Db');
     const due = db.prepare(`
-      SELECT * FROM messages 
-      WHERE scheduled_at IS NOT NULL 
+      SELECT * FROM messages
+      WHERE scheduled_at IS NOT NULL
       AND scheduled_at <= datetime('now')
       AND delivered = 0
     `).all();
 
     for (const msg of due) {
-      // Mark as delivered
       db.prepare('UPDATE messages SET scheduled_at = NULL WHERE id = ?').run(msg.id);
-      
-      // Send to members
       const approvedMembers = userQueries.findApproved.all('member');
       approvedMembers.forEach(member => {
         io.to(`user:${member.id}`).emit('new_broadcast', msg);
       });
-
-      // Email members
-      approvedMembers.forEach(async (member) => {
-        try {
-          await transporter.sendMail({
-            from: `"Broadcast App" <${process.env.EMAIL_USER}>`,
-            to: member.email,
-            subject: `📢 ${msg.title}`,
-            html: `<div style="font-family:Arial;padding:20px;"><h2>${msg.title}</h2><p>${msg.body}</p></div>`
-          });
-        } catch (e) {}
-      });
-
       console.log(`✅ Scheduled message sent: ${msg.title}`);
     }
   } catch (e) {
     console.log('Scheduler error:', e.message);
   }
-}, 60000); // Check every minute
-// HEALTH
+}, 60000);
 
-app.get(
-  '/',
-  (
-    req,
-    res
-  ) => {
+// ── Health check ──────────────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.json({ success: true, message: 'Broadcast Backend Running' });
+});
 
-    res.json({
-      success: true,
-      message:
-        'Broadcast Backend Running'
-    });
+// ── Routes ────────────────────────────────────────────────────────────────────
+app.use('/api/auth',   require('./routes/auth'));
+app.use('/api/member', require('./routes/member'));
+app.use('/api/forgot', require('./routes/forgot'));
+app.use('/api/admin',  require('./routes/admin'));
+app.use('/api/chat',   require('./routes/chat'));
 
-  }
-);
-
-app.use(
-  '/api/auth',
-  require('./routes/auth')
-);
-
-app.use(
-  '/api/member',
-  require('./routes/member')
-);
-
-app.use(
-  '/api/forgot',
-  require('./routes/forgot')
-);
-
-app.use(
-  '/api/admin',
-  require('./routes/admin')
-);
-
-app.use(
-  '/api/chat',
-  require('./routes/chat')
-);
-
-
-// START
-
-const PORT =
-  process.env.PORT ||
-  3000;
-
-server.listen(
-  PORT,
-  () => {
-
-    console.log(
-      `🚀 Server running on ${PORT}`
-    );
-  }
-);
+// ── Start ─────────────────────────────────────────────────────────────────────
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));
