@@ -113,7 +113,7 @@ setInterval(async () => {
       SELECT * FROM messages
       WHERE scheduled_at IS NOT NULL
       AND scheduled_at <= datetime('now')
-      AND delivered = 0
+      AND (delivered = 0 OR delivered IS NULL)
     `).all();
 
     for (const msg of due) {
